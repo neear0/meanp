@@ -1,0 +1,8 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs/meanp
+/Debug
+/meanp/Debug
+/meanp/x64/Release/microsoft/STL
