@@ -1,141 +1,160 @@
-#pragma once
 #include <iostream>
+#include "console.hpp"
+#include <iomanip>
+#include <sstream>
 
-#include "c_console.hpp"
-
-meanp::c_console::c_console(const std::string_view window_name)
-    : m_window_name_(window_name)
+meanp::utils::c_console::c_console(const std::string_view window_name)
+    : m_title_{ window_name }
 {
     m_attached_ = attach();
 }
 
-meanp::c_console::~c_console()
+meanp::utils::c_console::~c_console()
 {
-    if (m_attached_)
-        detach();
+    detach();          
 }
 
-bool meanp::c_console::attach()
+bool meanp::utils::c_console::is_attached() const noexcept
 {
-    if (m_attached_)
-        return true;
-
-    if (!AllocConsole())
-    {
-	    if (const auto error = GetLastError(); error != ERROR_ACCESS_DENIED)
-            return false;
-    }
-
-    FILE* fp_stdin = nullptr;
-    FILE* fp_stdout = nullptr;
-    FILE* fp_stderr = nullptr;
-
-    if (freopen_s(&fp_stdin, "CONIN$", "r", stdin) != 0 ||
-        freopen_s(&fp_stdout, "CONOUT$", "w", stdout) != 0 ||
-        freopen_s(&fp_stderr, "CONOUT$", "w", stderr) != 0)
-    {
-        FreeConsole();
-        return false;
-    }
-
-    std::ios::sync_with_stdio(true);
-
-    m_console_handle_ = GetStdHandle(STD_OUTPUT_HANDLE);
-    if (m_console_handle_ == INVALID_HANDLE_VALUE)
-    {
-        FreeConsole();
-        return false;
-    }
-
-    SetConsoleTextAttribute(m_console_handle_, static_cast<WORD>(default_color));
-
-    if (!m_window_name_.empty())
-        SetConsoleTitleA(m_window_name_.c_str());
-
-    clear();
-    return true;
+    return m_attached_;
 }
 
-inline void meanp::c_console::detach()
+
+void meanp::utils::c_console::write(console_color color, const std::string_view message) const
 {
     if (!m_attached_)
         return;
 
-    if (stdin)  fclose(stdin);
-    if (stdout) fclose(stdout);
-    if (stderr) fclose(stderr);
+    std::scoped_lock lock{ m_mutex_ };
 
-    FreeConsole();
-    m_console_handle_ = INVALID_HANDLE_VALUE;
-    m_attached_ = false;
+    SetConsoleTextAttribute(m_handle_, static_cast<WORD>(color));
+
+    const DWORD len = message.size();
+    DWORD       written{};
+    WriteConsoleA(m_handle_, message.data(), len, &written, nullptr);
+
+    // newline
+    WriteConsoleA(m_handle_, "\n", 1u, &written, nullptr);
+
+    SetConsoleTextAttribute(m_handle_, static_cast<WORD>(default_color));
 }
 
-void meanp::c_console::write(console_color text_color, std::string_view message) const
-{
-    if (!m_attached_ || m_console_handle_ == INVALID_HANDLE_VALUE)
-        return;
-
-    std::scoped_lock lock(m_mutex_);
-
-    SetConsoleTextAttribute(m_console_handle_, static_cast<WORD>(text_color));
-
-    std::cout << message << '\n';
-
-    SetConsoleTextAttribute(m_console_handle_, static_cast<WORD>(default_color));
-}
-
-void meanp::c_console::write(const std::string_view message) const
+void meanp::utils::c_console::write(const std::string_view message) const
 {
     write(default_color, message);
 }
 
-void meanp::c_console::write_timestamped(const console_color text_color, std::string_view message) const
+void meanp::utils::c_console::write_timestamped(const console_color color, std::string_view message) const
 {
-    const auto timestamp = get_local_time();
-    const auto full_message = std::format("{}{}", timestamp, message);
-    write(text_color, full_message);
+    write(color, std::format("{}{}", local_time(), message));
 }
 
-inline void meanp::c_console::clear() const
+void meanp::utils::c_console::log_info(std::string_view message) const
 {
-    if (!m_attached_)
-        return;
-
-    std::scoped_lock lock(m_mutex_);
-
-    CONSOLE_SCREEN_BUFFER_INFO buffer_info;
-    DWORD cells_written;
-    constexpr COORD home_coords = { 0, 0 };
-
-    if (!GetConsoleScreenBufferInfo(m_console_handle_, &buffer_info))
-        return;
-
-    const DWORD con_size = buffer_info.dwSize.X * buffer_info.dwSize.Y;
-
-    FillConsoleOutputCharacter(m_console_handle_, ' ', con_size, home_coords, &cells_written);
-    FillConsoleOutputAttribute(m_console_handle_, buffer_info.wAttributes, con_size, home_coords, &cells_written);
-    SetConsoleCursorPosition(m_console_handle_, home_coords);
+    write_timestamped(console_color::white, std::format("[INFO]  {}", message));
 }
 
-inline void meanp::c_console::set_title(const std::string_view title)
+void meanp::utils::c_console::log_warn(std::string_view message) const
+{
+    write_timestamped(console_color::yellow, std::format("[WARN]  {}", message));
+}
+
+void meanp::utils::c_console::log_error(std::string_view message) const
+{
+    write_timestamped(console_color::light_red, std::format("[ERROR] {}", message));
+}
+
+void meanp::utils::c_console::clear() const
 {
     if (!m_attached_)
         return;
 
-    std::scoped_lock lock(m_mutex_);
-    m_window_name_ = title;
-    SetConsoleTitleA(m_window_name_.c_str());
+    std::scoped_lock lock{ m_mutex_ };
+
+    CONSOLE_SCREEN_BUFFER_INFO info{};
+    if (!GetConsoleScreenBufferInfo(m_handle_, &info))
+        return;
+
+    constexpr COORD  origin{ 0, 0 };
+    const     DWORD  cells = static_cast<DWORD>(info.dwSize.X) *
+        static_cast<DWORD>(info.dwSize.Y);
+    DWORD written{};
+
+    FillConsoleOutputCharacter(m_handle_, L' ', cells, origin, &written);
+    FillConsoleOutputAttribute(m_handle_, info.wAttributes, cells, origin, &written);
+    SetConsoleCursorPosition(m_handle_, origin);
 }
 
-inline std::string meanp::c_console::get_local_time(const std::string_view format)
+void meanp::utils::c_console::set_title(const std::string_view title)
+{
+    if (!m_attached_)
+        return;
+
+    std::scoped_lock lock{ m_mutex_ };
+    m_title_ = title;
+    SetConsoleTitleA(m_title_.c_str());
+}
+
+std::string meanp::utils::c_console::local_time(const std::string_view fmt)
 {
     const auto now = std::chrono::system_clock::now();
-    const auto time_t_now = std::chrono::system_clock::to_time_t(now);
+    const auto time_t = std::chrono::system_clock::to_time_t(now);
 
-    std::tm local_time;
-    localtime_s(&local_time, &time_t_now);
+    std::tm tm{};
+    localtime_s(&tm, &time_t);
 
     std::ostringstream oss;
-    oss << std::put_time(&local_time, format.data());
+    oss << std::put_time(&tm, fmt.data());
     return oss.str();
+}
+
+bool meanp::utils::c_console::attach()
+{
+    if (m_attached_)
+        return true;
+
+    if (!AllocConsole() && GetLastError() != ERROR_ACCESS_DENIED)
+        return false;
+
+    FILE* dummy{};
+    if (freopen_s(&dummy, "CONIN$", "r", stdin) != 0 ||
+        freopen_s(&dummy, "CONOUT$", "w", stdout) != 0 ||
+        freopen_s(&dummy, "CONOUT$", "w", stderr) != 0)
+    {
+        FreeConsole();
+        return false;
+    }
+
+    m_handle_ = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (m_handle_ == INVALID_HANDLE_VALUE)
+    {
+        FreeConsole();
+        return false;
+    }
+
+    SetConsoleTextAttribute(m_handle_, static_cast<WORD>(default_color));
+
+    if (!m_title_.empty())
+        SetConsoleTitleA(m_title_.c_str());
+
+
+    m_attached_ = true;
+    clear();
+
+    return true;
+}
+
+void meanp::utils::c_console::detach()
+{
+    if (!m_attached_)
+        return;
+
+    std::fclose(stdin);
+    std::fclose(stdout);
+    std::fclose(stderr);
+
+    FreeConsole();
+
+    m_handle_ = INVALID_HANDLE_VALUE;
+    m_attached_ = false;
 }
