@@ -8,9 +8,8 @@
 
 #include "error_handler.hpp"
 
-namespace meanp::parser
+namespace meanp
 {
-
     enum class addr_type : std::uint8_t
     {
         absolute,   
@@ -50,10 +49,10 @@ namespace meanp::parser
         std::uintptr_t address;
     };
 
-    std::expected<meanp::parser::read_target_result_t, meanp::parser::parser_errors> read_target(std::string_view line);
-    std::expected<meanp::parser::read_offset_result_t, meanp::parser::parser_errors> read_offset(std::string_view token);
-    std::expected<std::vector<std::uint8_t>, meanp::parser::parser_errors> read_data(std::string_view hex);
-    std::expected<meanp::parser::patch_t, meanp::parser::parser_errors> read_line(std::string_view line);
+    std::expected<meanp::read_target_result_t, meanp::parser_errors> read_target(std::string_view line);
+    std::expected<meanp::read_offset_result_t, meanp::parser_errors> read_offset(std::string_view token);
+    std::expected<std::vector<std::uint8_t>, meanp::parser_errors> read_data(std::string_view hex);
+    std::expected<meanp::patch_t, meanp::parser_errors> read_line(std::string_view line);
     std::expected<std::vector<patch_t>, parse_error_t> read_file(const std::filesystem::path& path);
 
 }

@@ -1,7 +1,7 @@
 #pragma once
 #include <Windows.h>
 
-namespace meanp::memory
+namespace meanp
 {
 	class c_protection_guard
 {

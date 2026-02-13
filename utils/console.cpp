@@ -33,7 +33,6 @@ void meanp::utils::c_console::write(console_color color, const std::string_view 
     DWORD       written{};
     WriteConsoleA(m_handle_, message.data(), len, &written, nullptr);
 
-    // newline
     WriteConsoleA(m_handle_, "\n", 1u, &written, nullptr);
 
     SetConsoleTextAttribute(m_handle_, static_cast<WORD>(default_color));
@@ -115,6 +114,8 @@ bool meanp::utils::c_console::attach()
 
     if (!AllocConsole() && GetLastError() != ERROR_ACCESS_DENIED)
         return false;
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
     FILE* dummy{};
     if (freopen_s(&dummy, "CONIN$", "r", stdin) != 0 ||

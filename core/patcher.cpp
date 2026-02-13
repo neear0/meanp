@@ -5,12 +5,12 @@
 
 #include "c_protection_guard.hpp"
 
-meanp::memory::c_patcher::c_patcher(const utils::c_console& log) noexcept
+meanp::c_patcher::c_patcher(const utils::c_console& log) noexcept
     : m_log_{ log }
 {
 }
 
-bool meanp::memory::c_patcher::apply(std::uint8_t* base, const parser::patch_t& patch) const
+bool meanp::c_patcher::apply(std::uint8_t* base, const patch_t& patch) const
 {
     auto* address = resolve_address(base, patch);
     if (!address)
@@ -32,7 +32,7 @@ bool meanp::memory::c_patcher::apply(std::uint8_t* base, const parser::patch_t& 
 }
 
 
-std::uint8_t* meanp::memory::c_patcher::file_offset_to_ptr(std::uint8_t* base, const std::uintptr_t offset)
+std::uint8_t* meanp::c_patcher::file_offset_to_ptr(std::uint8_t* base, const std::uintptr_t offset)
 {
     const auto* dos = reinterpret_cast<PIMAGE_DOS_HEADER>(base);
     if (dos->e_magic != IMAGE_DOS_SIGNATURE)
@@ -59,17 +59,17 @@ std::uint8_t* meanp::memory::c_patcher::file_offset_to_ptr(std::uint8_t* base, c
     return nullptr;
 }
 
-std::uint8_t* meanp::memory::c_patcher::resolve_address(std::uint8_t* base, const parser::patch_t& patch) const
+std::uint8_t* meanp::c_patcher::resolve_address(std::uint8_t* base, const patch_t& patch) const
 {
     switch (patch.type)
     {
-    case parser::addr_type::absolute:
+    case addr_type::absolute:
         return reinterpret_cast<std::uint8_t*>(patch.address);
 
-    case parser::addr_type::rva:
+    case addr_type::rva:
         return base + patch.address;
 
-    case parser::addr_type::file:
+    case addr_type::file:
     {
         auto* result = file_offset_to_ptr(base, patch.address);
         if (!result)
@@ -88,7 +88,7 @@ std::uint8_t* meanp::memory::c_patcher::resolve_address(std::uint8_t* base, cons
     return nullptr;
 }
 
-bool meanp::memory::c_patcher::compare_data(std::uint8_t* target, const parser::patch_t& patch) const
+bool meanp::c_patcher::compare_data(std::uint8_t* target, const patch_t& patch) const
 {
     const std::span expected{ patch.off };
     const std::span actual{ target, expected.size() };
@@ -128,7 +128,7 @@ bool meanp::memory::c_patcher::compare_data(std::uint8_t* target, const parser::
     return false;
 }
 
-bool meanp::memory::c_patcher::write_data(std::uint8_t* target, const parser::patch_t& patch) const
+bool meanp::c_patcher::write_data(std::uint8_t* target, const patch_t& patch) const
 {
 	if (const c_protection_guard guard{ target, patch.on.size() }; !guard.ok())
     {
@@ -144,7 +144,7 @@ bool meanp::memory::c_patcher::write_data(std::uint8_t* target, const parser::pa
         "Applied patch from '{}':{}  at {}  {}",
         patch.file, patch.line, patch.type_name(), patch.target_name());
 
-    if (patch.type != parser::addr_type::absolute)
+    if (patch.type != addr_type::absolute)
         msg += std::format(" -> 0x{:X}", reinterpret_cast<std::uintptr_t>(target));
 
     m_log_.log_info(msg);

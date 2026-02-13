@@ -11,12 +11,12 @@ namespace meanp
     class c_dll_hook_manager final
     {
     public:
-        using patch_list = std::vector<parser::patch_t>;
+        using patch_list = std::vector<patch_t>;
         using unload_callback = std::function<void()>;
 
         explicit c_dll_hook_manager(
             HMODULE module,
-            std::vector<parser::patch_t> patches,
+            std::vector<patch_t> patches,
             std::function<void()> on_unload = nullptr
         ) noexcept;
 
@@ -29,7 +29,6 @@ namespace meanp
 
         bool place() const;
 
-        // FIX: Move these out of inline - they need access to impl internals
         bool all_patches_applied() const noexcept;
         std::size_t pending_patches() const noexcept;
 
@@ -46,8 +45,8 @@ namespace meanp
         static std::uint8_t* resolve_module_base(const std::string& target);
 
         static std::optional<bool> try_apply_loaded_module(
-            const memory::c_patcher& patcher,
-            parser::patch_t& patch
+            const c_patcher& patcher,
+            const patch_t& patch
         );
     };
 }

@@ -3,9 +3,9 @@
 #include <string>
 #include <system_error>
 
-namespace meanp::parser
+namespace meanp
 {
-    enum class parser_errors : int
+    enum class parser_errors : std::uint8_t
     {
         file_not_found = 1,
         file_open_fail,
@@ -29,4 +29,4 @@ namespace meanp::parser
 } 
 
 template <>
-struct std::is_error_code_enum<meanp::parser::parser_errors> : std::true_type {};
+struct std::is_error_code_enum<meanp::parser_errors> : std::true_type {};

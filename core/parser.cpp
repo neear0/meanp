@@ -3,8 +3,7 @@
 #include <fstream>
 #include <ranges>
 
-
-std::string_view meanp::parser::patch_t::type_name() const
+std::string_view meanp::patch_t::type_name() const
 {
     switch (type)
     {
@@ -15,14 +14,14 @@ std::string_view meanp::parser::patch_t::type_name() const
     return "???";
 }
 
-std::string meanp::parser::patch_t::target_name() const
+std::string meanp::patch_t::target_name() const
 {
     if (type == addr_type::absolute)
         return std::format("0x{:X}", address);
     return std::format("'{}'+0x{:X}", target, address);
 }
 
-std::expected<meanp::parser::read_target_result_t, meanp::parser::parser_errors> meanp::parser::read_target(std::string_view line)
+std::expected<meanp::read_target_result_t, meanp::parser_errors> meanp::read_target(std::string_view line)
 {
     const bool   quoted = line.starts_with('"');
     const size_t start = quoted ? 1u : 0u;
@@ -38,7 +37,7 @@ std::expected<meanp::parser::read_target_result_t, meanp::parser::parser_errors>
     };
 }
 
-std::expected<meanp::parser::read_offset_result_t, meanp::parser::parser_errors> meanp::parser::read_offset(const std::string_view token)
+std::expected<meanp::read_offset_result_t, meanp::parser_errors> meanp::read_offset(const std::string_view token)
 {
     const bool is_file = token.size() >= 2 &&
         (token[0] == 'f' || token[0] == 'F') &&
@@ -55,7 +54,7 @@ std::expected<meanp::parser::read_offset_result_t, meanp::parser::parser_errors>
     return result;
 }
 
-std::expected<std::vector<std::uint8_t>, meanp::parser::parser_errors> meanp::parser::read_data(const std::string_view hex)
+std::expected<std::vector<std::uint8_t>, meanp::parser_errors> meanp::read_data(const std::string_view hex)
 {
     if (hex.size() % 2 != 0)
         return std::unexpected{ parser_errors::parse_bad_data_length };
@@ -74,7 +73,7 @@ std::expected<std::vector<std::uint8_t>, meanp::parser::parser_errors> meanp::pa
     return result;
 }
 
-std::expected<meanp::parser::patch_t, meanp::parser::parser_errors> meanp::parser::read_line(std::string_view line)
+std::expected<meanp::patch_t, meanp::parser_errors> meanp::read_line(std::string_view line)
 {
     if (line.empty() ||
         line.starts_with('#') ||
@@ -135,7 +134,7 @@ std::expected<meanp::parser::patch_t, meanp::parser::parser_errors> meanp::parse
 }
 
 
-std::expected<std::vector<meanp::parser::patch_t>, meanp::parser::parse_error_t> meanp::parser::read_file(const std::filesystem::path& path)
+std::expected<std::vector<meanp::patch_t>, meanp::parse_error_t> meanp::read_file(const std::filesystem::path& path)
 {
     if (!std::filesystem::exists(path))
         return std::unexpected{ parse_error_t{ parser_errors::file_not_found, 0 } };

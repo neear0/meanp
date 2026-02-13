@@ -12,17 +12,16 @@ struct meanp::c_dll_hook_manager::impl
     decltype(&::register_dll_notification) register_fn{ nullptr };
     decltype(&::unregister_dll_notification) unregister_fn{ nullptr };
 
-    // FIX: Store c_console by value instead of passing temporary to c_patcher
     utils::c_console console;
-    memory::c_patcher patcher;
+    c_patcher patcher;
     std::mutex patches_mutex{};
 
-    explicit impl(HMODULE module, patch_list patches, unload_callback callback)
+    explicit impl(const HMODULE module, patch_list patches, unload_callback callback)
         : module_handle(module)
         , pending_patches(std::move(patches))
         , unload_fn(std::move(callback))
-        , console()  // Default construct console
-        , patcher(console)  // Pass by reference to c_patcher
+        , console()  
+        , patcher(console)  
     {
     }
 
@@ -38,9 +37,7 @@ struct meanp::c_dll_hook_manager::impl
 
         if (const auto status = register_fn(0, dll_notification_callback, this, &notification_cookie); !NT_SUCCESS(status))
         {
-            // FIX: Access console through stored member
-            console.log_error(std::format(
-                "Failed to register DLL notification callback (0x{:X})", status));
+            console.log_error(std::format("Failed to register DLL notification callback (0x{:X})", status));
             return false;
         }
 
@@ -186,8 +183,8 @@ std::uint8_t* meanp::c_dll_hook_manager::resolve_module_base(const std::string& 
 }
 
 std::optional<bool> meanp::c_dll_hook_manager::try_apply_loaded_module(
-    const memory::c_patcher& patcher,
-    parser::patch_t& patch
+    const c_patcher& patcher,
+    const patch_t& patch
 )
 {
     auto* base = resolve_module_base(patch.target);
@@ -197,23 +194,6 @@ std::optional<bool> meanp::c_dll_hook_manager::try_apply_loaded_module(
 
     if (!base)
         return std::nullopt;
-
-    // NOTE: This will cause a compilation error because m_log_ is private
-    // You need to either:
-    // 1. Add a public get_log() method to c_patcher, or
-    // 2. Pass the console instance to this function
-    // For now, I'll comment this out and show you the alternative
-
-    /*
-    static std::vector<std::string> logged_modules;
-    if (std::ranges::find(logged_modules, patch.target) == logged_modules.end())
-    {
-        patcher.m_log_.log_info(std::format(
-            "Target module '{}' resolved to address 0x{:X}",
-            patch.target, reinterpret_cast<std::uintptr_t>(base)));
-        logged_modules.push_back(patch.target);
-    }
-    */
 
     return patcher.apply(base, patch);
 }

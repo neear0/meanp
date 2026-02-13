@@ -1,11 +1,11 @@
 #include "error_handler.hpp"
 
-const char* meanp::parser::error_category_t::name() const noexcept
+const char* meanp::error_category_t::name() const noexcept
 {
 	return "meanp_parser";
 }
 
-std::string meanp::parser::error_category_t::message(int c) const
+std::string meanp::error_category_t::message(int c) const
 {
 	switch (static_cast<parser_errors>(c))
 	{
@@ -22,7 +22,7 @@ std::string meanp::parser::error_category_t::message(int c) const
 	return "unknown parser error";
 }
 
-std::error_code meanp::parser::make_error_code(parser_errors e)
+std::error_code meanp::make_error_code(parser_errors e)
 {
 	static const error_category_t instance{};
 	return { static_cast<int>(e), instance };
