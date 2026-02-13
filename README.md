@@ -1,4 +1,4 @@
-
+Mean Memory Patcher
 A lightweight, mean & modern C++23 DLL injection framework for runtime memory patching on Windows. **meanp** dynamically applies binary patches to processes, supporting both immediate patching and deferred patching via DLL load.
 I've stumbled upon a memory patcher by https://github.com/aixxe which inspired me to make one as well, so thank you & I hope you won't mind! Also big props! 
 ## Features
