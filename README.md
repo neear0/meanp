@@ -159,7 +159,7 @@ Common errors:
 
 ## Security Considerations
 
-⚠️ **Warning**: This tool modifies process memory at runtime. Use responsibly and only on software you own or have permission to modify of course.
+**Warning**: This tool modifies process memory at runtime. Use responsibly and only on software you own or have permission to modify of course.
 
 - Memory patches persist only while the DLL is loaded
 - Original bytes are restored on unload (if `off` data is provided)
@@ -197,7 +197,7 @@ Contributions are welcome! Areas for improvement:
 
 - Inspired by https://github.com/aixxe/mempatcher/tree/master & classic memory patching tools and game trainers
 - Uses modern C++23 features (`std::expected`, ranges, format)
-- Built with ❤️ for the reverse engineering and modding communities
+- Built with ❤️ and tears for the reverse engineering and modding communities
 
 ## Disclaimer
 
